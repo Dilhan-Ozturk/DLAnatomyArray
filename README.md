@@ -7,6 +7,11 @@
 
 DLAnatomyArray is a software developed using OpenCV and PaddlePaddle for processing slice images. Version 1.0 provides training weights for root segmentation and related code for root trait extraction. The UI is developed using PYQT, making it simple and easy to use with strong expandability. In the future, we will provide different trait extraction codes for different types of slice images. The software also has an integrated deep learning training interface. Users can quickly generate label data for training based on their own data and the annotation production method we provide to achieve targeted weight design.
 
+
+You can download the weight file form https://drive.google.com/drive/folders/19hvajeDV6yosTYnLGwVMcZseJsKvYhn_?usp=drive_link
+
+
+
 # User Interface
 
 The interface is mainly divided into four parts. The upper-left and upper-right are the image display windows, including the original image and the processed image. The lower-left area is the function area. The current version provides three functions: deep learning segmentation (based on AnatomyUNet), root trait extraction, and deep learning network training. The lower-right area is the processing display area, which updates the current processing status in real-time.
