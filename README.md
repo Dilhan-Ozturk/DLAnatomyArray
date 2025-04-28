@@ -1,11 +1,11 @@
-# DLAnatomyArray
-# Introduction to DLAnatomyArray Software
+# AnatomyNet
+# Introduction to AnatomyNet Software
 
 ![Untitled](Untitled.png)
 
-# DLAnatomyArray Software
+# AnatomyNet Software
 
-DLAnatomyArray is a software developed using OpenCV and PaddlePaddle for processing slice images. Version 1.0 provides training weights for root segmentation and related code for root trait extraction. The UI is developed using PYQT, making it simple and easy to use with strong expandability. In the future, we will provide different trait extraction codes for different types of slice images. The software also has an integrated deep learning training interface. Users can quickly generate label data for training based on their own data and the annotation production method we provide to achieve targeted weight design.
+AnatomyNet is a software developed using OpenCV and PaddlePaddle for processing slice images. Version 1.0 provides training weights for root segmentation and related code for root trait extraction. The UI is developed using PYQT, making it simple and easy to use with strong expandability. In the future, we will provide different trait extraction codes for different types of slice images. The software also has an integrated deep learning training interface. Users can quickly generate label data for training based on their own data and the annotation production method we provide to achieve targeted weight design.
 
 
 You can download the weight file form https://drive.google.com/drive/folders/19hvajeDV6yosTYnLGwVMcZseJsKvYhn_?usp=drive_link
@@ -37,7 +37,7 @@ The purpose of this function is to segment the edge of the stele and cortex in r
 
 1. Click "Choose image path". The path has strict requirements. Two folders named "in" and "out" will be generated based on the deep learning segmentation results. These folders store the segmentation results of the stele and cortex, respectively, with identical file names. Select the root directory where "in" and "out" are stored.
 2. Click "Result save path" to select the path for the calculation results.
-3. Nine parameters were entered to ensure the classification of the cells, namely, pericycle, endodermis, and exodermis. The software provides default values, which can be modified based on the default values.
+3. Nine parameters were entered to ensure the classification of the cells, namely, pericycle, endodermis, and epidermis. The software provides default values, which can be modified based on the default values.
 4. Click "Start processing" to start processing.
 
 ![Untitled](Untitled%203.png)
@@ -163,9 +163,9 @@ img_cortex = cv.add(img_cortex, laplace_cortex)
     
     The Endodermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the stele must be less than the set threshold ; the shortest distance from its center to the contour of the stele must be less than the set threshold ; the area of this cell must be less than the set threshold .
     
-    **Criteria for Exodermis Identification:**
+    **Criteria for Epidermis Identification:**
     
-    The Exodermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold ; the shortest distance from its center to the contour of the section must be less than the set threshold ; the area of this cell must be less than the set threshold .
+    The Epidermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold ; the shortest distance from its center to the contour of the section must be less than the set threshold ; the area of this cell must be less than the set threshold .
     
 
 ![Untitled](Untitled%2011.png)
@@ -189,46 +189,46 @@ $$
 
 The specific traits are as follows：
 
-| Traits class | Class | Trait name | Explain |
-| --- | --- | --- | --- |
-| Cell | Stele | Number |  |
-|  | Pericycle | Fitting number | Area/Mean cell area |
-|  | Metaxylem | Area | The total area of all the cells |
-|  | Endodermis | Width | The mean of the width of the minimum enclosing rectangle of all cells |
-|  | Cortex | Standard deviation of width |  |
-|  | Exodermis | Height |  |
-|  | Endodermis + Cortex + Exodermis | Standard deviation of height | The mean of the height of the minimum enclosing rectangle of all cells |
-|  | Stele + Pericycle + Metaxylem | Aspect ratio | Width/Height |
-|  |  | Standard deviation of aspect ratio |  |
-|  |  | Equivalent circular diamete | The mean of the diameter of the equivalent circle of all cells |
-|  |  | Standard deviation of
-equivalent circular diamete |  |
-|  |  | Perimeter | The mean of the radius of the minimum enclosing circle of all cells |
-|  |  | Standard deviation of perimeter |  |
-|  |  | Minimum enclosing circle radius |  |
-|  |  | Standard deviation of minimum enclosing circle radius |  |
-|  |  | The major axis of the fitting ellipse |  |
-|  |  | Standard deviation of the major axis of the fitting ellipse |  |
-|  |  | The minor axis of the fitting ellipse |  |
-|  |  | Standard deviation of the minor axis of the fitting ellipse |  |
-|  |  |  |  |
-| Region | Stele region | Area |  |
-|  | Entire section | Width |  |
-|  |  | Height |  |
-|  |  | Aspect ratio |  |
-|  |  | Equivalent circular diamete |  |
-|  |  | Perimeter |  |
-|  |  | Minimum enclosing circle
-  radius |  |
-|  |  | The major axis of the fitting ellipse |  |
-|  |  | The minor axis of the fitting ellipse |  |
-|  |  |  |  |
-| Ratio | Ratio | SWR | area of stele to whole root ratio |
-|  |  | SCSAR  | area of stele cell to stele area ratio |
-|  |  | CCCAR | area of cortex cell to cortex area ratio |
-|  |  | WCWAR | area of whole cell to whole root section area ratio |
-|  |  | SCR | area of stele to area of cortex ratio |
-|  |  | SCCCR | area of stele cell to cortex cell area ratio |
-|  |  | CNSNR | number of cortex cell to stele cell ratio |
-|  |  | CFNSR | Fitting number of cortex cell to stele cell ratio |
-|  |  | CFNSR | Fitting number of cortex cell to stele cell ratio |
+| Traits class | Class                           | Trait name | Explain |
+| --- |---------------------------------| --- | --- |
+| Cell | Stele                           | Number |  |
+|  | Pericycle                       | Fitting number | Area/Mean cell area |
+|  | Metaxylem                       | Area | The total area of all the cells |
+|  | Endodermis                      | Width | The mean of the width of the minimum enclosing rectangle of all cells |
+|  | Cortex                          | Standard deviation of width |  |
+|  | Epidermis                       | Height |  |
+|  | Endodermis + Cortex + Epidermis | Standard deviation of height | The mean of the height of the minimum enclosing rectangle of all cells |
+|  | Stele + Pericycle + Metaxylem   | Aspect ratio | Width/Height |
+|  |                                 | Standard deviation of aspect ratio |  |
+|  |                                 | Equivalent circular diamete | The mean of the diameter of the equivalent circle of all cells |
+|  |                                 | Standard deviation of
+equivalent circular diamete |                                 |
+|  |                                 | Perimeter | The mean of the radius of the minimum enclosing circle of all cells |
+|  |                                 | Standard deviation of perimeter |  |
+|  |                                 | Minimum enclosing circle radius |  |
+|  |                                 | Standard deviation of minimum enclosing circle radius |  |
+|  |                                 | The major axis of the fitting ellipse |  |
+|  |                                 | Standard deviation of the major axis of the fitting ellipse |  |
+|  |                                 | The minor axis of the fitting ellipse |  |
+|  |                                 | Standard deviation of the minor axis of the fitting ellipse |  |
+|  |                                 |  |  |
+| Region | Stele region                    | Area |  |
+|  | Entire section                  | Width |  |
+|  |                                 | Height |  |
+|  |                                 | Aspect ratio |  |
+|  |                                 | Equivalent circular diamete |  |
+|  |                                 | Perimeter |  |
+|  |                                 | Minimum enclosing circle
+  radius |                                 |
+|  |                                 | The major axis of the fitting ellipse |  |
+|  |                                 | The minor axis of the fitting ellipse |  |
+|  |                                 |  |  |
+| Ratio | Ratio                           | SWR | area of stele to whole root ratio |
+|  |                                 | SCSAR  | area of stele cell to stele area ratio |
+|  |                                 | CCCAR | area of cortex cell to cortex area ratio |
+|  |                                 | WCWAR | area of whole cell to whole root section area ratio |
+|  |                                 | SCR | area of stele to area of cortex ratio |
+|  |                                 | SCCCR | area of stele cell to cortex cell area ratio |
+|  |                                 | CNSNR | number of cortex cell to stele cell ratio |
+|  |                                 | CFNSR | Fitting number of cortex cell to stele cell ratio |
+|  |                                 | CFNSR | Fitting number of cortex cell to stele cell ratio |

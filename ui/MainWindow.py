@@ -486,7 +486,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "DLAnatomyArray"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "AnatomyNet"))
         self.label.setText(_translate("MainWindow", "Original Image"))
         self.label_2.setText(_translate("MainWindow", "Precessed Image"))
         self.pushButton_24.setText(_translate("MainWindow", "Input File Path"))
@@ -509,7 +509,7 @@ class Ui_MainWindow(object):
         self.lineEdit_12.setText(_translate("MainWindow", "25"))
         self.label_18.setText(_translate("MainWindow", "Cell area"))
         self.lineEdit_13.setText(_translate("MainWindow", "1100"))
-        self.label_23.setText(_translate("MainWindow", "Classify exodermis"))
+        self.label_23.setText(_translate("MainWindow", "Classify epidermis"))
         self.label_19.setText(_translate("MainWindow", "Distance from outer ring (Contour)"))
         self.lineEdit_14.setText(_translate("MainWindow", "18"))
         self.label_20.setText(_translate("MainWindow", "Distance from outer ring(Center)"))

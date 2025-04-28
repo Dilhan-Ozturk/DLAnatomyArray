@@ -227,7 +227,7 @@ class  RootTraitCal:
                 elif cell['center_distance_section_min'] < self.DS2_exodermis and cell['contour_distance_section_min'] < self.DS1_exodermis and cell['area'] < self.Area_exodermis:
                     self.cell_annotation['annotations'][index]['category_id'] = '6'
                     self.cell_annotation['annotations'][index]['category_name'] = 'epidermis'
-                    self.cell_area['area'].append({'exodermis': cell['area']})
+                    self.cell_area['area'].append({'epidermis': cell['area']})
                     self.img_last = cv.fillPoly(self.img_last, [np.array(cell['contours'])], (0, 208, 244))
                 else:
                     self.cell_annotation['annotations'][index]['category_id'] = '5'
@@ -282,7 +282,7 @@ class  RootTraitCal:
         traits_cortex_all = []
         traits_stele_all = []
         for cell in self.cell_annotation['annotations']:
-            if cell['category_name'] in ['endodermis', 'exodermis', 'cortex']:
+            if cell['category_name'] in ['endodermis', 'epidermis', 'cortex']:
                 traits_cortex_all.append(traits_cul(np.array(cell['contours'])))
             elif cell['category_name'] in ['pericycle', 'mexylem', 'stele']:
                 traits_stele_all.append(traits_cul(np.array(cell['contours'])))

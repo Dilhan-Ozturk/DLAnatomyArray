@@ -1,0 +1,11 @@
+opencv-python
+openpyxl
+PyQt5
+PyYAML
+six
+requests
+scikit-learn
+filelock
+qt_material
+matplotlib
+tqdm
