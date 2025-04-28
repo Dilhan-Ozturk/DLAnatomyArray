@@ -226,7 +226,7 @@ class  RootTraitCal:
                 # 外皮曾 一样
                 elif cell['center_distance_section_min'] < self.DS2_exodermis and cell['contour_distance_section_min'] < self.DS1_exodermis and cell['area'] < self.Area_exodermis:
                     self.cell_annotation['annotations'][index]['category_id'] = '6'
-                    self.cell_annotation['annotations'][index]['category_name'] = 'exodermis'
+                    self.cell_annotation['annotations'][index]['category_name'] = 'epidermis'
                     self.cell_area['area'].append({'exodermis': cell['area']})
                     self.img_last = cv.fillPoly(self.img_last, [np.array(cell['contours'])], (0, 208, 244))
                 else:
