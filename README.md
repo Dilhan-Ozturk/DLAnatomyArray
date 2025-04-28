@@ -1,7 +1,7 @@
 # AnatomyNet
 # Introduction to AnatomyNet Software
 
-![Untitled](Untitled.png)
+![Untitled](resource/Untitled.png)
 
 # AnatomyNet Software
 
@@ -16,7 +16,7 @@ You can download the weight file form https://drive.google.com/drive/folders/19h
 
 The interface is mainly divided into four parts. The upper-left and upper-right are the image display windows, including the original image and the processed image. The lower-left area is the function area. The current version provides three functions: deep learning segmentation (based on AnatomyUNet), root trait extraction, and deep learning network training. The lower-right area is the processing display area, which updates the current processing status in real-time.
 
-![Untitled](Untitled%201.png)
+![Untitled](resource/Untitled%201.png)
 
 ## Usage
 
@@ -31,7 +31,7 @@ The purpose of this function is to segment the edge of the stele and cortex in r
 5. Finally, click "Start SEG" to start segmentation. The text box on the right will show the working status in real-time. The two image display areas above will show the input image and the segmented image.
 6. Two file folder, "in" and "out", will be generated for the segmented stele and cortex, respectively. The size and name of the output files will be identical to the input file.
 
-![Untitled](Untitled%202.png)
+![Untitled](resource/Untitled%202.png)
 
 ## Root Trait Extraction
 
@@ -40,7 +40,7 @@ The purpose of this function is to segment the edge of the stele and cortex in r
 3. Nine parameters were entered to ensure the classification of the cells, namely, pericycle, endodermis, and epidermis. The software provides default values, which can be modified based on the default values.
 4. Click "Start processing" to start processing.
 
-![Untitled](Untitled%203.png)
+![Untitled](resource/Untitled%203.png)
 
 ## Model Training
 
@@ -51,9 +51,9 @@ The purpose of this function is to segment the edge of the stele and cortex in r
 5. Set "Learning rate", which is the learning rate of the optimizer. The specific value needs to be adjusted according to the data characteristics and the network structure used.
 6. Finally, click "Start Training" to start training. The training progress will be displayed in the text box on the right in real-time. After the training is completed, the trained weight file will be saved to the selected path.
 
-![Untitled](Untitled%204.png)
+![Untitled](resource/Untitled%204.png)
 
-![Untitled](Untitled%205.png)
+![Untitled](resource/Untitled%205.png)
 
 # **Technical Methods**
 
@@ -96,7 +96,7 @@ def preprocess(self):
     self.mask_cortex = cv.subtract(self.mask_section, self.mask_stele)
 ```
 
-![Untitled](Untitled%206.png)
+![Untitled](resource/Untitled%206.png)
 
 1. The main steps including median filter: effectively removing noise in the image, denoising and other image enhancement operations, users can modify it again according to actual needs. First find the section in the image, remove other impurities, we default that the section in the whole image is the largest area. First use the threshold set before for threshold segmentation, and then use the **open operation**, **hole filling**, **and find the largest connected component** to determine the position of the section, and finally mask the section from the original image. Similarly, for the clean section image masked out, use threshold segmentation for secondary segmentation. This value was also set before instantiation. Fill the segmented image, find the largest connected area, and mask it to separate the stele area. The mask of the entire section area minus the stele mask can obtain the cortex mask. At this moment, we have obtained the masks of the cortex and stele. The next step is to segment the cell walls in each area as completely as possible. Histogram equalization can effectively adjust global grayscale, aiding in cell wall segmentation. At the same time, the use of the adaptive threshold method is crucial. Here, we may need to adjust the last two values according to our own data. The first is the size of the local neighborhood, and the second is the offset adjustment amount. You can adjust it up and down appropriately to observe the segmentation results. Finally, remove small connected areas of a certain size, and you can get the final binary images of the cell walls in the stele and cortex parts.
 
@@ -108,7 +108,7 @@ gray_lap_stele = cv.adaptiveThreshold(gray_lap_stele, 255, cv.ADAPTIVE_THRESH_ME
 gray_lap_stele = remove_small_objects(gray_lap_stele, 100)
 ```
 
-![Untitled](Untitled%207.png)
+![Untitled](resource/Untitled%207.png)
 
 ## Image Processing Method (Trait Calculation)
 
@@ -139,15 +139,15 @@ img_cortex = cv.add(img_cortex, laplace_stele)
 img_cortex = cv.add(img_cortex, laplace_cortex)
 ```
 
-![Untitled](Untitled%208.png)
+![Untitled](resource/Untitled%208.png)
 
 1. **Processing of the Stele Region:** For the predicted image of the stele region, a closing operation is used to close the entire region, followed by hole filling. Next, an opening operation is applied to remove small, elongated impurities. Identifying the largest contour in the image provides the contour of the stele (*contour_stele*).
 
-![Untitled](Untitled%209.png)
+![Untitled](resource/Untitled%209.png)
 
 1. **Cell Recognition and Classification****:** The inverted binary image of the closed section mask is used, creating several connected components representing cell areas. First, we remove the connected components corresponding to the background. An opening operation is used to separate some adhered cell regions. Then, the watershed algorithm is applied to detect all cells. Subsequently, the cells are classified for the first time. The center coordinates of each connected component are calculated, and if a center coordinate is within the area enclosed by the contour of the stele region, the cell is classified as a stele cell. Otherwise, based on a certain size threshold, it is classified as a cortex cell
 
-![Untitled](Untitled%2010.png)
+![Untitled](resource/Untitled%2010.png)
 
 1. **Further Cell Classification****:** The mean and standard deviation of cells within the stele region are computed. Cells with an area larger than a specified threshold are classified as metaxylem. Additionally, the shortest distances from each cell contour to the contour of stele region (*contour_stele*) and the outer contour of the section (*contour_section*) are calculated, be written as *distance_contour_stele* and *distance_contour_cortex*, along with the shortest distances from each cell's center point to these two contours, be written as *distance_center_stele* and *distance_center_cortex*. Based on predetermined criteria, cells can be categorized into different types, such as pericycle, endodermis and exodermis.
     
@@ -168,7 +168,7 @@ img_cortex = cv.add(img_cortex, laplace_cortex)
     The Epidermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold ; the shortest distance from its center to the contour of the section must be less than the set threshold ; the area of this cell must be less than the set threshold .
     
 
-![Untitled](Untitled%2011.png)
+![Untitled](resource/Untitled%2011.png)
 
 1. **Trait Calculation:** DLAnatomyArray provides two types of trait calculations: single connected component and cell. For a single connected component, such as the stele area and the entire section area, traits including The traits can be represented by the following: 
 - `width`
