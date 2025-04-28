@@ -11,6 +11,9 @@ AnatomyNet is a software developed using OpenCV and PaddlePaddle for processing 
 You can download the weight file form https://drive.google.com/drive/folders/19hvajeDV6yosTYnLGwVMcZseJsKvYhn_?usp=drive_link
 
 
+Please check the versions of CUDA and cuDNN installed on your computer, and visit the PaddlePaddle official website to select and install the compatible Paddle version. It is recommended to use a conda virtual environment. After installation, install the required dependencies listed in requirements.txt, and then run Main.py to start using the software.
+
+
 
 # User Interface
 
