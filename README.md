@@ -115,7 +115,7 @@ gray_lap_stele = remove_small_objects(gray_lap_stele, 100)
 
 ## Image Processing Method (Trait Calculation)
 
-![Untitled](resource/cell_classification.png.png)
+![Untitled](resource/cell_classification.png)
 
 The relevant code for trait calculation is for the binary images of the stele and cortex that have been segmented.
 
@@ -145,8 +145,6 @@ The relevant code for trait calculation is for the binary images of the stele an
     
     The Epidermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold (DS_threshold1); the shortest distance from its center to the contour of the section must be less than the set threshold (DS_threshold2); the area of this cell must be less than the set threshold (Area_threshold).
     
-
-![Untitled](resource/Untitled%2011.png)
 
 1. **Trait Calculation:** DLAnatomyArray provides two types of trait calculations: single connected component and cell. For a single connected component, such as the stele area and the entire section area, traits including The traits can be represented by the following: 
 - `width`
