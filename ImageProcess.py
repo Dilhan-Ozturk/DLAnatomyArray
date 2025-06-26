@@ -402,6 +402,8 @@ def watershold_distance(component_mask):
     output_now = cv.bitwise_not(output_now)
     output_now = cv.bitwise_and(output_now, component_mask_copy)
 
+
+
     # num_labels_now, labels_now, stats_now, _ = cv.connectedComponentsWithStats(output_now, connectivity=4)
 
     # for j in range(1, num_labels_now):
@@ -478,3 +480,174 @@ def img_resize(img, size):
         img = cv.resize(img, (size, int(size * img.shape[0] / img.shape[1])), interpolation=cv.INTER_AREA)
         img_new[int((size - img.shape[0]) / 2):int((size - img.shape[0]) / 2) + img.shape[0], :, :] = img
     return img_new
+
+def Check_stele_cell(img, annotation, img_cortex_all, contour_section):
+    num, labels, stats, _ = cv.connectedComponentsWithStats(
+        img, connectivity=4)
+
+    # 所有连通域最外圈轮廓
+    contours, _ = cv.findContours(labels.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    # contours合成一个
+    contours = np.vstack(contours)
+
+    img_ellipse = np.zeros_like(img)
+
+    ellipse = cv.fitEllipse(contours)
+    (xc, yc), (major, minor), angle = ellipse
+    # 膨胀椭圆的长轴和短轴（可调倍率），原来是1.2
+    scale = 1.2
+    major *= scale
+    minor *= scale
+
+    # 构建放大后的椭圆
+    scaled_ellipse = ((xc, yc), (major, minor), angle)
+
+    cv.ellipse(img_ellipse, scaled_ellipse, 255, 2)
+    img_ellipse_fill = FillHole(img_ellipse)
+
+    contours_ellipse, contour_hull_ellipse = get_max_contour_and_hull(img_ellipse_fill)
+
+    # 判断img的所有连通域是否在img_ellipse内
+    for i in range(1, num):
+        center_x_component_pro = int(
+            stats[i, cv.CC_STAT_LEFT] + stats[i, cv.CC_STAT_WIDTH] / 2)
+        center_y_component_pro = int(
+            stats[i, cv.CC_STAT_TOP] + stats[i, cv.CC_STAT_HEIGHT] / 2)
+
+        distance_stele = cv.pointPolygonTest(contours_ellipse, (center_x_component_pro, center_y_component_pro), True)
+
+        # 取出连通域
+        mask = np.zeros_like(img)
+        mask[labels == i] = 255
+        mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3, 3), np.uint8), iterations=1)
+        # mask是否在img_ellipse内
+        mask_ellipse = cv.bitwise_and(mask, img_ellipse_fill)
+
+        contours_i, contour_hull = get_max_contour_and_hull(mask)
+
+        distance_stele_min_contour = min_distance_between_two_contour(contours_ellipse, contours_i)
+
+
+        if np.count_nonzero(mask_ellipse) == 0 and stats[i, cv.CC_STAT_AREA] > 100:
+            img_cortex_all[labels == i] = 255
+            annotation['annotations'].append({'category_id': '0', 'category_name': 'cortex cell',
+                                                        'contours': contours_i.tolist(),
+                                                        'area': stats[i, cv.CC_STAT_AREA],
+                                                        'center_distance_stele_min': distance_stele,
+                                                        'center_distance_section_min': 100000,
+                                                        'contour_distance_stele_min': distance_stele_min_contour,
+                                                        'contour_distance_section_min': 100000})
+        else:
+            annotation['annotations'].append({'category_id': '0', 'category_name': 'stele cell',
+                                                        'contours': contours_i.tolist(),
+                                                        'area': stats[i, cv.CC_STAT_AREA],
+                                                        'center_distance_stele_min': distance_stele,
+                                                        'center_distance_section_min': None,
+                                                        'contour_distance_stele_min': distance_stele_min_contour,
+                                                        'contour_distance_section_min': None})
+
+
+    # 判定cortex部分
+    (xc, yc), (major, minor), angle = ellipse
+    scale = 1.25
+    major *= scale
+    minor *= scale
+
+    # 构建放大后的椭圆
+    scaled_ellipse = ((xc, yc), (major, minor), angle)
+
+    cv.ellipse(img_ellipse, scaled_ellipse, 255, 2)
+    img_ellipse_fill = FillHole(img_ellipse)
+
+    contours_ellipse, contour_hull_ellipse = get_max_contour_and_hull(img_ellipse_fill)
+    num_cortex, labels_cortex, stats_cortex, _ = cv.connectedComponentsWithStats(
+        img_cortex_all, connectivity=4)
+
+    img_cortex_all_close = cv.morphologyEx(img_cortex_all, cv.MORPH_CLOSE, np.ones((30, 30), np.uint8))
+    contour_in = Find_max_in_contour(img_cortex_all_close)
+
+
+    for j in range(1, num_cortex):
+        center_x_component_pro = int(
+            stats_cortex[j, cv.CC_STAT_LEFT] + stats_cortex[j, cv.CC_STAT_WIDTH] / 2)
+        center_y_component_pro = int(
+            stats_cortex[j, cv.CC_STAT_TOP] + stats_cortex[j, cv.CC_STAT_HEIGHT] / 2)
+
+        distance_stele = cv.pointPolygonTest(contour_in, (center_x_component_pro, center_y_component_pro),
+                                             True)
+
+        # 计算连通域中心与contour_section的距离
+        distance_section = cv.pointPolygonTest(contour_section, (center_x_component_pro, center_y_component_pro),
+                                               True)
+        # 取出连通域
+        mask = np.zeros_like(img)
+        mask[labels_cortex == j] = 255
+        mask = cv.morphologyEx(mask, cv.MORPH_DILATE, np.ones((3, 3), np.uint8), iterations=1)
+
+        contours_j, contour_hull = get_max_contour_and_hull(mask)
+
+        distance_stele_min_contour = min_distance_between_two_contour(contour_in, contours_j)
+        distance_section_min_contour = min_distance_between_two_contour(contour_section, contours_j)
+
+        if  stats_cortex[j, cv.CC_STAT_AREA] > 100:
+            annotation['annotations'].append({'category_id': '0', 'category_name': 'cortex cell',
+                                              'contours': contours_j.tolist(),
+                                              'area': stats_cortex[j, cv.CC_STAT_AREA],
+                                              'center_distance_stele_min': distance_stele,
+                                              'center_distance_section_min': distance_section,
+                                              'contour_distance_stele_min': distance_stele_min_contour,
+                                              'contour_distance_section_min': distance_section_min_contour})
+
+
+    return img_ellipse, annotation, img_cortex_all
+
+def Find_max_in_contour(img):
+
+    contours, hierarchy = cv.findContours(img, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
+
+    # 4. 找到面积最大的内轮廓
+    max_area = 0
+    max_contour = None
+
+    # 注意 hierarchy[0][i][3] == -1 是外轮廓，非 -1 则为内轮廓
+    for i, contour in enumerate(contours):
+        if hierarchy[0][i][3] != -1:  # 只保留内轮廓
+            area = cv.contourArea(contour)
+            if area > max_area:
+                max_area = area
+                max_contour = contour
+
+    return max_contour
+
+
+def calculate_mask_overlap_ratio(component_mask_test, mask):
+    """
+    计算 component_mask_test 在 mask 内的比例
+
+    参数:
+        component_mask_test: 待测试的二值掩码（numpy数组）
+        mask: 参考的二值掩码（numpy数组）
+
+    返回:
+        overlap_ratio: component_mask_test 中落在 mask 内的像素比例 (0~1)
+    """
+    # 确保两个掩码形状相同
+    assert component_mask_test.shape == mask.shape
+
+    # 将掩码转换为布尔类型
+    component_mask_test = component_mask_test.astype(bool)
+    mask = mask.astype(bool)
+
+    # 计算 component_mask_test 与 mask 的交集
+    intersection = np.logical_and(component_mask_test, mask)
+
+    # 计算 component_mask_test 的总像素数（避免除以0）
+    total_pixels = np.sum(component_mask_test)
+    if total_pixels == 0:
+        return 0.0  # 如果 component_mask_test 为空，则比例为0
+
+    # 计算重叠比例
+    overlap_ratio = np.sum(intersection) / total_pixels
+
+    return overlap_ratio
