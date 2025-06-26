@@ -71,11 +71,23 @@ class  RootTraitCal:
 
         # the region of the stele
         self.img_stele_pro = cv.multiply(self.img_stele_pro, img_section_pro_mask)
-        kernel_close2  = np.ones((30, 30), dtype=np.uint8)
+        kernel_close2 = np.ones((30, 30), dtype=np.uint8)
         self.img_stele_pro = cv.morphologyEx(self.img_stele_pro, cv.MORPH_CLOSE, kernel_close2)
         img_stele_mask = FillHole(self.img_stele_pro)
         img_stele_mask = cv.morphologyEx(img_stele_mask, cv.MORPH_OPEN, kernel_close2)
         self.img_stele_mask = img_stele_mask.copy()
+
+        self.img_last = np.zeros((img_section_pro.shape[0], img_section_pro.shape[1], 3), np.uint8)
+
+        # self.img_stele_pro转为三通道，换个颜色
+        # self.img_stele_pro = cv.cvtColor(self.img_stele_pro, cv.COLOR_GRAY2BGR)
+        # mask = (self.img_stele_pro != [0, 0, 0]).any(axis=-1)
+        # # Assign the new value to the pixels where the mask is True
+        # self.img_stele_pro[mask] = [50, 50, 50]
+        #
+        # self.img_last = self.img_last + self.img_stele_pro
+        #
+        # cv.imwrite('show_img/1_' + self.img_name, self.img_last)
 
         # new
         # self.img_stele_pro = cv.multiply(self.img_stele_pro, img_section_pro_mask)
@@ -96,6 +108,7 @@ class  RootTraitCal:
 
     def cell_detection(self):
         # 图像反色并标记连通域
+
         img_section_pro = cv.bitwise_not(self.img_section_pro)
         img_section_pro = cv.multiply(img_section_pro, self.img_section_pro_mask)
 
@@ -105,100 +118,89 @@ class  RootTraitCal:
         # 找到连通域
         num_labels, labels, stats, _ = cv.connectedComponentsWithStats(img_section_pro, connectivity=4)
 
-        self.img_last = np.zeros((img_section_pro.shape[0], img_section_pro.shape[1], 3), np.uint8)
-        # output_center = np.zeros((img_section_pro.shape[0], img_section_pro.shape[1], 3), np.uint8)
+        self.img_stele_all = np.zeros((img_section_pro.shape[0], img_section_pro.shape[1]), np.uint8)
+        self.img_cortex_all = np.zeros((img_section_pro.shape[0], img_section_pro.shape[1]), np.uint8)
 
         # 对每个连通域执行距离变换和分水岭算法
         cell_area = []
         for i in tqdm(range(1, num_labels)):
 
+            x_comp, y_comp, width_comp, height_comp, area_comp = stats[i]
             # 计算连通域的中心坐标
             center_x = int(stats[i, cv.CC_STAT_LEFT] + stats[i, cv.CC_STAT_WIDTH] / 2)
             center_y = int(stats[i, cv.CC_STAT_TOP] + stats[i, cv.CC_STAT_HEIGHT] / 2)
 
             # 判断连通域是否在image_stele中
-            if self.img_stele_mask[center_y, center_x] == 255:
+            component_mask_test = np.where(labels == i, 255, 0).astype(np.uint8)
+            iou = calculate_mask_overlap_ratio(component_mask_test, self.img_stele_mask)
+            # print(iou)
+            if self.img_stele_mask[center_y, center_x] == 255 and iou > 0.4:
 
-                component_mask = np.where(labels == i, 255, 0).astype(np.uint8)
+                # component_mask = np.where(labels == i, 255, 0).astype(np.uint8)
+                # # 距离变换
+                # component_pro = watershold_distance(component_mask)
+                # # 计算每个连通域的信息并进行分类
+                # num_labels_component_pro, labels_component_pro, stats_component_pro, _ = cv.connectedComponentsWithStats(component_pro, connectivity=4)
+
+                binary_i = (labels[y_comp - 10:y_comp + 10 + height_comp,
+                            x_comp - 10:x_comp + 10 + width_comp] == i).astype(np.uint8) * 255
+
                 # 距离变换
-                component_pro = watershold_distance(component_mask)
-                # 计算每个连通域的信息并进行分类
-                num_labels_component_pro, labels_component_pro, stats_component_pro, _ = cv.connectedComponentsWithStats(component_pro, connectivity=4)
-
-                for j in range(1, num_labels_component_pro):
-                    if stats_component_pro[j, cv.CC_STAT_AREA] > 20:
-                        cell_area.append(stats_component_pro[j, cv.CC_STAT_AREA])
-                        self.stele_area = cell_area
-                        # 计算连通域中心与contour_stele的距离
-                        center_x_component_pro = int(stats_component_pro[j, cv.CC_STAT_LEFT] + stats_component_pro[j, cv.CC_STAT_WIDTH] / 2)
-                        center_y_component_pro = int(stats_component_pro[j, cv.CC_STAT_TOP] + stats_component_pro[j, cv.CC_STAT_HEIGHT] / 2)
-                        distance_stele = cv.pointPolygonTest(self.contour_stele, (center_x_component_pro, center_y_component_pro), True)
-
-                        # 计算连通域中心与contour_section的距离
-                        distance_section = cv.pointPolygonTest(self.contour_section, (center_x_component_pro, center_y_component_pro), True)
-
-                        img_j = np.zeros_like(component_pro)
-                        img_j[labels_component_pro == j] = 255
-                        img_j = cv.morphologyEx(img_j, cv.MORPH_DILATE, np.ones((3, 3), np.uint8), iterations=1)
-                        # 计算img_j的最外圈轮廓
-                        contours_j, contour_hull = get_max_contour_and_hull(img_j)
-                        # 计算轮廓与两个外轮廓之间的最短距离
-                        distance_stele_min_contour = min_distance_between_two_contour(self.contour_stele, contours_j)
-                        distance_section_min_contour = min_distance_between_two_contour(self.contour_section, contours_j)
-
-                        self.cell_annotation['annotations'].append({'category_id': '0', 'category_name': 'stele cell',
-                                                                    'contours': contours_j.tolist(),
-                                                                    'area': stats_component_pro[j, cv.CC_STAT_AREA],
-                                                                    'center_distance_stele_min': distance_stele,
-                                                                    'center_distance_section_min': distance_section,
-                                                                    'contour_distance_stele_min': distance_stele_min_contour,
-                                                                    'contour_distance_section_min': distance_section_min_contour})
-            else:
-                component_mask = np.where(labels == i, 255, 0).astype(np.uint8)
-                # 距离变换
-                component_pro = watershold_distance(component_mask)
+                component_pro = watershold_distance(binary_i)
                 # 计算每个连通域的信息并进行分类
                 num_labels_component_pro, labels_component_pro, stats_component_pro, _ = cv.connectedComponentsWithStats(
                     component_pro, connectivity=4)
 
                 for j in range(1, num_labels_component_pro):
-                    if stats_component_pro[j, cv.CC_STAT_AREA] > 150:
-                        # 计算连通域中心与contour_stele的距离
-                        center_x_component_pro = int(
-                            stats_component_pro[j, cv.CC_STAT_LEFT] + stats_component_pro[j, cv.CC_STAT_WIDTH] / 2)
-                        center_y_component_pro = int(
-                            stats_component_pro[j, cv.CC_STAT_TOP] + stats_component_pro[j, cv.CC_STAT_HEIGHT] / 2)
-                        distance_stele = cv.pointPolygonTest(self.contour_stele,
-                                                             (center_x_component_pro, center_y_component_pro), True)
+                    if stats_component_pro[j, cv.CC_STAT_AREA] > 20:
+                        cell_area.append(stats_component_pro[j, cv.CC_STAT_AREA])
+                        self.stele_area = cell_area
+                        # 在self.img_stele_last上绘制连通域
+                        y0 = y_comp - 10
+                        x0 = x_comp - 10
+                        mask = (labels_component_pro == j).astype(np.uint8)
+                        self.img_stele_all[y0:y0 + mask.shape[0], x0:x0 + mask.shape[1]][mask == 1] = 255
 
-                        # 计算连通域中心与contour_section的距离
-                        distance_section = cv.pointPolygonTest(self.contour_section,
-                                                               (center_x_component_pro, center_y_component_pro), True)
+            else:
+                binary_i = (labels[y_comp - 10:y_comp + 10 + height_comp,
+                            x_comp - 10:x_comp + 10 + width_comp] == i).astype(np.uint8) * 255
 
-                        img_j = np.zeros_like(component_pro)
-                        img_j[labels_component_pro == j] = 255
-                        img_j = cv.morphologyEx(img_j, cv.MORPH_DILATE, np.ones((3, 3), np.uint8), iterations=1)
-                        # 计算img_j的最外圈轮廓
-                        contours_j, contour_hull = get_max_contour_and_hull(img_j)
-                        # 计算轮廓与两个外轮廓之间的最短距离
-                        distance_stele_min_contour = min_distance_between_two_contour(self.contour_stele, contours_j)
-                        distance_section_min_contour = min_distance_between_two_contour(self.contour_section, contours_j)
-                        self.cell_annotation['annotations'].append({'category_id': '0', 'category_name': 'cortex cell',
-                                                                    'contours': contours_j.tolist(),
-                                                                    'area': stats_component_pro[j, cv.CC_STAT_AREA],
-                                                                    'center_distance_stele_min': distance_stele,
-                                                                    'center_distance_section_min': distance_section,
-                                                                    'contour_distance_stele_min': distance_stele_min_contour,
-                                                                    'contour_distance_section_min': distance_section_min_contour})
+                # 距离变换
+                component_pro = watershold_distance(binary_i)
+                # 计算每个连通域的信息并进行分类
+                num_labels_component_pro, labels_component_pro, stats_component_pro, _ = cv.connectedComponentsWithStats(
+                    component_pro, connectivity=4)
+
+                # component_mask = np.where(labels == i, 255, 0).astype(np.uint8)
+                # # 距离变换
+                # component_pro = watershold_distance(component_mask)
+                # # 计算每个连通域的信息并进行分类
+                # num_labels_component_pro, labels_component_pro, stats_component_pro, _ = cv.connectedComponentsWithStats(
+                #     component_pro, connectivity=4)
+
+                for k in range(1, num_labels_component_pro):
+                    if stats_component_pro[k, cv.CC_STAT_AREA] > 150:
+                        y0 = y_comp - 10
+                        x0 = x_comp - 10
+                        mask = (labels_component_pro == k).astype(np.uint8)
+                        self.img_cortex_all[y0:y0 + mask.shape[0], x0:x0 + mask.shape[1]][mask == 1] = 255
 
     def cell_class(self):
         index = 0
+
+        # cv2.imwrite('ceshi/cortex' + self.img_name, self.img_stele_all)
+        # cv2.imwrite('ceshi/stele' +  self.img_name,  self.img_cortex_all)
+
+        self.img_stele_ellipse, self.cell_annotation, self.img_cortex_all = Check_stele_cell(self.img_stele_all, self.cell_annotation, self.img_cortex_all, self.contour_section)
+        # cv2.imwrite('data/output_cortex/' + name, self.img_cortex_all)
+
         for cell in self.cell_annotation['annotations']:
             r = random.randint(0, 255)
             g = random.randint(0, 255)
             b = random.randint(0, 255)
 
             if cell['category_name'] == 'stele cell':
+                # 判断中柱鞘
                 if cell['contour_distance_stele_min'] < self.DS_pericycle and cell['center_distance_stele_min'] < self.DS2_pericycle and cell['area'] < self.Area_pericycle:
                     self.cell_annotation['annotations'][index]['category_id'] = '3'
                     self.cell_annotation['annotations'][index]['category_name'] = 'pericycle'
@@ -282,7 +284,7 @@ class  RootTraitCal:
         traits_cortex_all = []
         traits_stele_all = []
         for cell in self.cell_annotation['annotations']:
-            if cell['category_name'] in ['endodermis', 'epidermis', 'cortex']:
+            if cell['category_name'] in ['endodermis', 'cortex']:
                 traits_cortex_all.append(traits_cul(np.array(cell['contours'])))
             elif cell['category_name'] in ['pericycle', 'mexylem', 'stele']:
                 traits_stele_all.append(traits_cul(np.array(cell['contours'])))
@@ -343,5 +345,3 @@ class  RootTraitCal:
         self.trait.extend(self.ratio_traits)
 
         return self.cell_annotation, self.cell_area, self.trait_name, self.trait, self.img_last
-
-
