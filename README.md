@@ -115,44 +115,19 @@ gray_lap_stele = remove_small_objects(gray_lap_stele, 100)
 
 ## Image Processing Method (Trait Calculation)
 
+![Untitled](resource/Untitled%207.png)
+
 The relevant code for trait calculation is for the binary images of the stele and cortex that have been segmented.
 
-1. **Preprocessing: T**he purpose is to obtain the final binary images of the stele and cortex parts that are sent to cell detection. Among the key steps are closing the outer ring. Since some root section cortex outer rings may be damaged, this is fatal to cell shape extraction, so we use a large-core closing operation to close the entire slice area image. The following part is the processing flow, fill the entire section area into a connected area, and then use a (50,50) convolution kernel for closing operation to get a new binary image. Add the outer ring contour (*contour_section*) of this binary image to the original segmented cortex binary image.
+1. **Generation of complete section image:** The initial segmentation image was constructed by combining the deep learning-predicted stele cell wall segmentation and cortex cell wall segmentation. A median filter was applied to reduce noise, followed by a morphological closing operation (Fig. S10D) and hole filling to merge meaningful but disconnected regions, yielding a more complete tissue area. To remove elongated artifacts attached to the section boundary, a morphological opening was applied. The largest connected component was then extracted to generate a binary mask of the section.
 
-```python
-kernel_close = np.ones((50, 50), dtype=np.uint8)
-img_cortex_close = cv.morphologyEx(img_cortex, cv.MORPH_CLOSE, kernel_close)
-# Fill in the outer ring of the cell
-img_cortex_close = FillHole(img_cortex_close)
-img_cortex_close = Find_max_contours(img_cortex_close)
-img_cortex_close_mask = cv.divide(img_cortex_close, 255)
-img_cortex_close_mask = cv.morphologyEx(img_cortex_close_mask, cv.MORPH_DILATE, kernel_close)
-img_cortex = cv.multiply(img_cortex, img_cortex_close_mask)
-```
+2. **Section area closure:** The binary mask was used to filter the full segmentation image , resulting in a clean cross-sectional cell wall image. Hole filling and morphological closing  were further performed to ensure a fully enclosed section area. The Laplacian operator was then applied to image to detect the outermost contour of the section, denoted as Contour_section. This contour was overlaid with the segmented image to reconstruct a more continuous and closed section image, effectively mitigating detection errors caused by broken outer edges.
 
-1. **Repair the cortex part：**Due to the junction position in the middle of the stele and cortex, the accuracy of the segmentation is relatively not so high, but basically the stele will be segmented a little more, which leads to the inner cortex of the cortex part may only have a part of the cell wall, and cannot completely recognize the cell. So we also added the outer ring contour of the stele to the predicted binary image of the cortex, so that we got the complete cortex part and stele cell wall binary image. You can proceed to the next step of cell recognition.
+3. **Cell detection and initial classification:** Image was inverted and combined with the section mask to identify individual cell regions. A morphological opening operation was applied to remove slender impurities and separate tightly adhered cells. All individual cells were then segmented using connected component analysis and the watershed algorithm. For classification, the centroid coordinates of each cell were computed. Cells whose centroids fell within the stele region were initially classified as stele cells, and the rest as cortex cells. An ellipse was fitted to the contours of all stele cells, defining the Contour_stele. A secondary refinement was performed: cells initially within the stele but located outside this fitted ellipse were reclassified as cortex cells, while the rest remained stele cells. This yielded a refined classification result.
 
-```python
-# Close the entire outer cell ring of the section
-img_stele = cv.multiply(img_stele, img_cortex_close_mask)
-img_stele_fill = FillHole(img_stele)
-laplace_stele = cv.Laplacian(img_stele_fill, cv.CV_8U, ksize=5)
-laplace_cortex = cv.Laplacian(img_cortex_close, cv.CV_8U, ksize=5)
-img_cortex = cv.add(img_cortex, laplace_stele)
-img_cortex = cv.add(img_cortex, laplace_cortex)
-```
+4. **Cortex region boundary definition:** To define the inner boundary of the cortex, the cortex cell region was subjected to a morphological closing operation to merge all cortex cells into a single component. The largest inner contour within this region was extracted and defined as Contour_cortex_in, providing a reliable reference for layer-specific classification within the cortex.
 
-![Untitled](resource/Untitled%208.png)
-
-1. **Processing of the Stele Region:** For the predicted image of the stele region, a closing operation is used to close the entire region, followed by hole filling. Next, an opening operation is applied to remove small, elongated impurities. Identifying the largest contour in the image provides the contour of the stele (*contour_stele*).
-
-![Untitled](resource/Untitled%209.png)
-
-1. **Cell Recognition and Classification**: The inverted binary image of the closed section mask is used, creating several connected components representing cell areas. First, we remove the connected components corresponding to the background. An opening operation is used to separate some adhered cell regions. Then, the watershed algorithm is applied to detect all cells. Subsequently, the cells are classified for the first time. The center coordinates of each connected component are calculated, and if a center coordinate is within the area enclosed by the contour of the stele region, the cell is classified as a stele cell. Otherwise, based on a certain size threshold, it is classified as a cortex cell
-
-![Untitled](resource/Untitled%2010.png)
-
-1. **Further Cell Classification**: The individual area of each cell was calculated. In the stele region, cells with area larger than stele_area_aver + 4 × stele_area_std were classified as metaxylem. For other stele cells, the shortest distances from each cell’s contour and centroid to Contour_stele were computed. Based on thresholds of area, contour distance, and centroid distance, pericycle cells were identified. Similarly, for cortex region cells, distances from both the contour and centroid to Contour_section and Contour_cortex_in were calculated. Based on five threshold conditions (area and four distances), cortex cells were further classified into endodermis, epidermis, and general cortex cells. 
+5. **Cell type assignment and trait calculation**: The individual area of each cell was calculated. In the stele region, cells with area larger than stele_area_aver + 4 × stele_area_std were classified as metaxylem. For other stele cells, the shortest distances from each cell’s contour and centroid to Contour_stele were computed. Based on thresholds of area, contour distance, and centroid distance, pericycle cells were identified. Similarly, for cortex region cells, distances from both the contour and centroid to Contour_section and Contour_cortex_in were calculated. Based on five threshold conditions (area and four distances), cortex cells were further classified into endodermis, epidermis, and general cortex cells. The final result presents a complete cell-type segmentation and classification map for quantitative anatomical trait analysis. 
     
     **Criteria for Metaxylem Identification:**
     
