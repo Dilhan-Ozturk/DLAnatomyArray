@@ -152,7 +152,7 @@ img_cortex = cv.add(img_cortex, laplace_cortex)
 
 ![Untitled](resource/Untitled%2010.png)
 
-1. **Further Cell Classification****:** The mean and standard deviation of cells within the stele region are computed. Cells with an area larger than a specified threshold are classified as metaxylem. Additionally, the shortest distances from each cell contour to the contour of stele region (*contour_stele*) and the outer contour of the section (*contour_section*) are calculated, be written as *distance_contour_stele* and *distance_contour_cortex*, along with the shortest distances from each cell's center point to these two contours, be written as *distance_center_stele* and *distance_center_cortex*. Based on predetermined criteria, cells can be categorized into different types, such as pericycle, endodermis and exodermis.
+1. **Further Cell Classification**: The mean and standard deviation of cells within the stele region are computed. Cells with an area larger than a specified threshold are classified as metaxylem. Additionally, the shortest distances from each cell contour to the contour of stele region (*contour_stele*) and the outer contour of the section (*contour_section*) are calculated, be written as *distance_contour_stele* and *distance_contour_cortex*, along with the shortest distances from each cell's center point to these two contours, be written as *distance_center_stele* and *distance_center_cortex*. Based on predetermined criteria, cells can be categorized into different types, such as pericycle, endodermis and exodermis.
     
     **Criteria for Metaxylem Identification:**
     
