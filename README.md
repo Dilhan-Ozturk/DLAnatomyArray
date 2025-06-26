@@ -115,11 +115,11 @@ gray_lap_stele = remove_small_objects(gray_lap_stele, 100)
 
 ## Image Processing Method (Trait Calculation)
 
-![Untitled](resource/Untitled%207.png)
+![Untitled](resource/cell_classification.png.png)
 
 The relevant code for trait calculation is for the binary images of the stele and cortex that have been segmented.
 
-1. **Generation of complete section image:** The initial segmentation image was constructed by combining the deep learning-predicted stele cell wall segmentation and cortex cell wall segmentation. A median filter was applied to reduce noise, followed by a morphological closing operation (Fig. S10D) and hole filling to merge meaningful but disconnected regions, yielding a more complete tissue area. To remove elongated artifacts attached to the section boundary, a morphological opening was applied. The largest connected component was then extracted to generate a binary mask of the section.
+1. **Generation of complete section image:** The initial segmentation image was constructed by combining the deep learning-predicted stele cell wall segmentation and cortex cell wall segmentation. A median filter was applied to reduce noise, followed by a morphological closing operation and hole filling to merge meaningful but disconnected regions, yielding a more complete tissue area. To remove elongated artifacts attached to the section boundary, a morphological opening was applied. The largest connected component was then extracted to generate a binary mask of the section.
 
 2. **Section area closure:** The binary mask was used to filter the full segmentation image , resulting in a clean cross-sectional cell wall image. Hole filling and morphological closing  were further performed to ensure a fully enclosed section area. The Laplacian operator was then applied to image to detect the outermost contour of the section, denoted as Contour_section. This contour was overlaid with the segmented image to reconstruct a more continuous and closed section image, effectively mitigating detection errors caused by broken outer edges.
 
