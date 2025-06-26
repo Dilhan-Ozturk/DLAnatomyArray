@@ -87,7 +87,7 @@ class TraitsThread(QThread):
         ws_pericycle = wb.create_sheet('pericycle')
         ws_endodermis = wb.create_sheet('endodermis')
         ws_cortex = wb.create_sheet('cortex')
-        ws_exodermis = wb.create_sheet('exodermis')
+        ws_epidermis = wb.create_sheet('epidermis')
 
         traits_name_index = ['name']
 
@@ -125,7 +125,7 @@ class TraitsThread(QThread):
                 area_mexylem = [name]
                 area_stele = [name]
                 area_endodermis = [name]
-                area_exodermis = [name]
+                area_epidermis = [name]
                 area_cortex = [name]
 
                 for area_index in range(len(cell_area['area'])):
@@ -137,8 +137,8 @@ class TraitsThread(QThread):
                         area_stele.append(cell_area['area'][area_index]['stele'])
                     elif 'endodermis' in cell_area['area'][area_index].keys():
                         area_endodermis.append(cell_area['area'][area_index]['endodermis'])
-                    elif 'exodermis' in cell_area['area'][area_index].keys():
-                        area_exodermis.append(cell_area['area'][area_index]['exodermis'])
+                    elif 'epidermis' in cell_area['area'][area_index].keys():
+                        area_epidermis.append(cell_area['area'][area_index]['epidermis'])
                     elif 'cortex' in cell_area['area'][area_index].keys():
                         area_cortex.append(cell_area['area'][area_index]['cortex'])
 
@@ -147,7 +147,7 @@ class TraitsThread(QThread):
                 ws_mexylem.append(area_mexylem)
                 ws_stele.append(area_stele)
                 ws_endodermis.append(area_endodermis)
-                ws_exodermis.append(area_exodermis)
+                ws_epidermis.append(area_epidermis)
                 ws_cortex.append(area_cortex)
 
                 i += 1
@@ -159,9 +159,12 @@ class TraitsThread(QThread):
                     os.makedirs(os.path.join(self.savepath , 'jsonfile'))
 
 
+
                 wb.save(os.path.join(self.savepath, 'result.xlsx'))
                 cv.imwrite(os.path.join(self.savepath, 'ImgResult', name), img_last)
-                filename = os.path.splitext(name)
+
+
+                # filename = os.path.splitext(name)
                 # json_data = json.dumps(cell_annotation)
                 # with open(os.path.join(self.savepath, 'jsonfile', filename[0] + '.json'), 'w+', encoding='utf-8') as fp:
                 #     fp.write(json_data)
