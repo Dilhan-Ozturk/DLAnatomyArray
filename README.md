@@ -148,11 +148,11 @@ img_cortex = cv.add(img_cortex, laplace_cortex)
 
 ![Untitled](resource/Untitled%209.png)
 
-1. **Cell Recognition and Classification****:** The inverted binary image of the closed section mask is used, creating several connected components representing cell areas. First, we remove the connected components corresponding to the background. An opening operation is used to separate some adhered cell regions. Then, the watershed algorithm is applied to detect all cells. Subsequently, the cells are classified for the first time. The center coordinates of each connected component are calculated, and if a center coordinate is within the area enclosed by the contour of the stele region, the cell is classified as a stele cell. Otherwise, based on a certain size threshold, it is classified as a cortex cell
+1. **Cell Recognition and Classification**: The inverted binary image of the closed section mask is used, creating several connected components representing cell areas. First, we remove the connected components corresponding to the background. An opening operation is used to separate some adhered cell regions. Then, the watershed algorithm is applied to detect all cells. Subsequently, the cells are classified for the first time. The center coordinates of each connected component are calculated, and if a center coordinate is within the area enclosed by the contour of the stele region, the cell is classified as a stele cell. Otherwise, based on a certain size threshold, it is classified as a cortex cell
 
 ![Untitled](resource/Untitled%2010.png)
 
-1. **Further Cell Classification**: The mean and standard deviation of cells within the stele region are computed. Cells with an area larger than a specified threshold are classified as metaxylem. Additionally, the shortest distances from each cell contour to the contour of stele region (*contour_stele*) and the outer contour of the section (*contour_section*) are calculated, be written as *distance_contour_stele* and *distance_contour_cortex*, along with the shortest distances from each cell's center point to these two contours, be written as *distance_center_stele* and *distance_center_cortex*. Based on predetermined criteria, cells can be categorized into different types, such as pericycle, endodermis and exodermis.
+1. **Further Cell Classification**: The individual area of each cell was calculated. In the stele region, cells with area larger than stele_area_aver + 4 × stele_area_std were classified as metaxylem. For other stele cells, the shortest distances from each cell’s contour and centroid to Contour_stele were computed. Based on thresholds of area, contour distance, and centroid distance, pericycle cells were identified. Similarly, for cortex region cells, distances from both the contour and centroid to Contour_section and Contour_cortex_in were calculated. Based on five threshold conditions (area and four distances), cortex cells were further classified into endodermis, epidermis, and general cortex cells. 
     
     **Criteria for Metaxylem Identification:**
     
@@ -160,15 +160,15 @@ img_cortex = cv.add(img_cortex, laplace_cortex)
     
     **Criteria for Pericycle Identification:**
     
-    The pericycle needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the stele must be less than the set threshold ; the shortest distance from its center to the contour of the stele must be less than the set threshold ; the area of this cell must be less than the set threshold .
+    The pericycle needs to satisfy three criteria, specifically, to classify the cell,  the shortest distance from the cell's contour to the contour of the stele must be less than a set threshold (DS_threshold1), ensuring the cell's proximity to the stele region DS_threshold1; the shortest distance from its center to the contour of the stele must be less than the set threshold (DS_threshold2); the area of this cell must be less than the set threshold (Area_threshold).
     
     **Criteria for Endodermis** **Identification:**
     
-    The Endodermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the stele must be less than the set threshold ; the shortest distance from its center to the contour of the stele must be less than the set threshold ; the area of this cell must be less than the set threshold .
+    The Endodermis needs to satisfy three criteria, specifically, to classify the cell,  the shortest distance from the cell's contour to the inner contour of the cortex region the shortest distance from the cell's contour to the contour of the stele must be less than a set threshold (DS_threshold1), indicating that the cell is located close to the cortex boundary.ensuring the cell is located close to the stele region DS_threshold1; the shortest distance from the cell's center to this inner cortex contour must also be less than another threshold (DS_threshold2), the shortest distance from its center to the contour of the stele must be less than the set threshold DS_threshold2; the area of this cell must be less than the set threshold (Area_threshold)Area_threshold.
     
     **Criteria for Epidermis Identification:**
     
-    The Epidermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold ; the shortest distance from its center to the contour of the section must be less than the set threshold ; the area of this cell must be less than the set threshold .
+    The Epidermis needs to satisfy three criteria, specifically, to classify the cell, the shortest distance from its contour to the contour of the section must be less than the set threshold (DS_threshold1); the shortest distance from its center to the contour of the section must be less than the set threshold (DS_threshold2); the area of this cell must be less than the set threshold (Area_threshold).
     
 
 ![Untitled](resource/Untitled%2011.png)
