@@ -5,12 +5,12 @@ import numpy as np
 import openpyxl as op
 
 from ui.MainWindow import Ui_MainWindow
-# from ImageOperator import *
-from PyQt5.QtWidgets import QMainWindow, QStyle, QApplication, QFileDialog, QMessageBox,QGraphicsScene, QApplication, QGraphicsItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
-from PyQt5.QtGui import QPixmap,QImage, QWheelEvent, QIcon
-from PyQt5.QtCore import QRect, QRectF, QSize, Qt,QThread,QEventLoop, QTimer
-from PyQt5 import QtCore,QtGui
-from DLSeg import DLsegBacth
+from PyQt5.QtWidgets import (QMainWindow, QApplication, QFileDialog, QMessageBox,
+                              QGraphicsScene, QGraphicsPixmapItem, QGraphicsView)
+from PyQt5.QtGui import QPixmap, QImage, QIcon
+from PyQt5.QtCore import Qt, QThread
+from PyQt5 import QtCore, QtGui
+from DLSeg import DLsegBatch
 from qt_material import apply_stylesheet
 from ModelTrain import train_model
 import json
@@ -24,7 +24,6 @@ class SegThread(QThread):
     signal_process_set = QtCore.pyqtSignal(int)
 
     def __init__(self, filedirpath, weightpath, savepath):
-
         super(SegThread, self).__init__()
         self.filedirpath = filedirpath
         self.weightpath = weightpath
@@ -35,22 +34,19 @@ class SegThread(QThread):
 
     def run(self):
         file = os.listdir(self.filedirpath)
-        i = 1
-        for name in file:
-            filepath = self.filedirpath + '\\' + name
-            img = DLsegBacth(filepath, self.weightpath, name, self.savepath)
+        for i, name in enumerate(file, start=1):
+            filepath = os.path.join(self.filedirpath, name)
+            img = DLsegBatch(filepath, self.weightpath, name, self.savepath)
             img2 = cv.imread(filepath)
-            processnumber = int(i/len(file)*100)
-            i += 1
+            processnumber = int(i / len(file) * 100)
             img = img_resize(img, 1024)
             img2 = img_resize(img2, 1024)
 
             self.signal_img1_set.emit(img)
             self.signal_img2_set.emit(img2)
-
             self.signal_process_set.emit(processnumber)
 
-            print(name + ' has been successfully segmented')
+            print(f'{name} has been successfully segmented')
 
         print('All is done')
 
@@ -59,9 +55,9 @@ class TraitsThread(QThread):
     signal_result_set = QtCore.pyqtSignal(np.ndarray)
     signal_result2_set = QtCore.pyqtSignal(np.ndarray)
     signal_process2_set = QtCore.pyqtSignal(int)
-    def __init__(self, filedirpath, savepath, DS_pericycle, DS2_pericycle, Area_pericycle, DS1_endodermis,
-                                   DS2_endodermis, Area_endodermis, DS1_exodermis, DS2_exodermis, Area_exodermis):
 
+    def __init__(self, filedirpath, savepath, DS_pericycle, DS2_pericycle, Area_pericycle, DS1_endodermis,
+                 DS2_endodermis, Area_endodermis, DS1_exodermis, DS2_exodermis, Area_exodermis):
         super(TraitsThread, self).__init__()
         self.filedirpath = filedirpath
         self.savepath = savepath
@@ -75,12 +71,11 @@ class TraitsThread(QThread):
         self.DS2_exodermis = DS2_exodermis
         self.Area_exodermis = Area_exodermis
 
-
     def __del__(self):
         self.wait()
 
     def run(self):
-        wb = op.Workbook()  # 创建工作簿对象
+        wb = op.Workbook()
         ws_trait = wb.create_sheet('traits')
         ws_stele = wb.create_sheet('stele')
         ws_mexylem = wb.create_sheet('mexylem')
@@ -91,16 +86,13 @@ class TraitsThread(QThread):
 
         traits_name_index = ['name']
 
-
-        path_seg = os.path.join(self.filedirpath,  'in')
-
+        path_seg = os.path.join(self.filedirpath, 'in')
         file = os.listdir(path_seg)
-        i = 1
 
-        if os.path.exists(self.savepath) is False:
+        if not os.path.exists(self.savepath):
             os.makedirs(self.savepath)
 
-        for name in file:
+        for i, name in enumerate(file, start=1):
             traits_all_index = [name]
             img_in_path = os.path.join(self.filedirpath, 'in', name)
             img_out_path = os.path.join(self.filedirpath, 'out', name)
@@ -108,11 +100,13 @@ class TraitsThread(QThread):
             img_out = cv.imread(img_out_path, 0)
             img_all = cv.add(img_in, img_out)
             processnumber2 = int(i / len(file) * 100)
-            RootTrait = RootTraitCal(name, img_in, img_out, self.DS_pericycle, self.DS2_pericycle, self.Area_pericycle, self.DS1_endodermis,
-                                   self.DS2_endodermis, self.Area_endodermis, self.DS1_exodermis, self.DS2_exodermis, self.Area_exodermis)
+            RootTrait = RootTraitCal(name, img_in, img_out, self.DS_pericycle, self.DS2_pericycle,
+                                     self.Area_pericycle, self.DS1_endodermis, self.DS2_endodermis,
+                                     self.Area_endodermis, self.DS1_exodermis, self.DS2_exodermis,
+                                     self.Area_exodermis)
 
             try:
-                cell_annotation, cell_area, trait_name,  trait, img_last = RootTrait.trait_all_flow()
+                cell_annotation, cell_area, trait_name, trait, img_last = RootTrait.trait_all_flow()
                 traits_name_index.extend(trait_name)
 
                 if i == 1:
@@ -129,19 +123,19 @@ class TraitsThread(QThread):
                 area_cortex = [name]
 
                 for area_index in range(len(cell_area['area'])):
-                    if 'pericycle' in cell_area['area'][area_index].keys():
-                        area_pericyle.append(cell_area['area'][area_index]['pericycle'])
-                    elif 'mexylem' in cell_area['area'][area_index].keys():
-                        area_mexylem.append(cell_area['area'][area_index]['mexylem'])
-                    elif 'stele' in cell_area['area'][area_index].keys():
-                        area_stele.append(cell_area['area'][area_index]['stele'])
-                    elif 'endodermis' in cell_area['area'][area_index].keys():
-                        area_endodermis.append(cell_area['area'][area_index]['endodermis'])
-                    elif 'epidermis' in cell_area['area'][area_index].keys():
-                        area_epidermis.append(cell_area['area'][area_index]['epidermis'])
-                    elif 'cortex' in cell_area['area'][area_index].keys():
-                        area_cortex.append(cell_area['area'][area_index]['cortex'])
-
+                    area_entry = cell_area['area'][area_index]
+                    if 'pericycle' in area_entry:
+                        area_pericyle.append(area_entry['pericycle'])
+                    elif 'mexylem' in area_entry:
+                        area_mexylem.append(area_entry['mexylem'])
+                    elif 'stele' in area_entry:
+                        area_stele.append(area_entry['stele'])
+                    elif 'endodermis' in area_entry:
+                        area_endodermis.append(area_entry['endodermis'])
+                    elif 'epidermis' in area_entry:
+                        area_epidermis.append(area_entry['epidermis'])
+                    elif 'cortex' in area_entry:
+                        area_cortex.append(area_entry['cortex'])
 
                 ws_pericycle.append(area_pericyle)
                 ws_mexylem.append(area_mexylem)
@@ -150,42 +144,28 @@ class TraitsThread(QThread):
                 ws_epidermis.append(area_epidermis)
                 ws_cortex.append(area_cortex)
 
-                i += 1
-
-                if os.path.exists(os.path.join(self.savepath , 'ImgResult')) is False:
-                    os.makedirs(os.path.join(self.savepath , 'ImgResult'))
-
-                if os.path.exists(os.path.join(self.savepath , 'jsonfile')) is False:
-                    os.makedirs(os.path.join(self.savepath , 'jsonfile'))
-
-
+                if not os.path.exists(os.path.join(self.savepath, 'ImgResult')):
+                    os.makedirs(os.path.join(self.savepath, 'ImgResult'))
 
                 wb.save(os.path.join(self.savepath, 'result.xlsx'))
                 cv.imwrite(os.path.join(self.savepath, 'ImgResult', name), img_last)
-
-
-                # filename = os.path.splitext(name)
-                # json_data = json.dumps(cell_annotation)
-                # with open(os.path.join(self.savepath, 'jsonfile', filename[0] + '.json'), 'w+', encoding='utf-8') as fp:
-                #     fp.write(json_data)
-                print(name + ' is done')
+                print(f'{name} is done')
 
                 img_last = img_resize(img_last, 1024)
                 self.signal_result_set.emit(img_last)
 
-
-            except:
-                print(name + ' something wrong')
+            except Exception as e:
+                print(f'{name} something went wrong: {e}')
 
             img_all = img_resize(img_all, 1024)
-
             self.signal_result2_set.emit(img_all)
             self.signal_process2_set.emit(processnumber2 + 1)
+
         print('All is done')
 
-class TrainThread(QThread):
-    def __init__(self, datapath, savepath, LR,ITERS, BS, SI, LI, CLA):
 
+class TrainThread(QThread):
+    def __init__(self, datapath, savepath, LR, ITERS, BS, SI, LI, CLA):
         super(TrainThread, self).__init__()
         self.datapath = datapath
         self.savepath = savepath
@@ -204,43 +184,46 @@ class TrainThread(QThread):
 
 
 class EmittingStr(QtCore.QObject):
-    textWritten = QtCore.pyqtSignal(str) #定义一个发送str的信号
+    textWritten = QtCore.pyqtSignal(str)
+
     def write(self, text):
         self.textWritten.emit(str(text))
 
 
 class UIMain(QMainWindow):
 
+    VALID_IMAGE_EXTENSIONS = ('.bmp', '.dib', '.png', '.jpg', '.jpeg',
+                              '.pbm', '.pgm', '.ppm', '.tif', '.tiff')
+
     def __init__(self):
         super().__init__()
         self.CellUI = Ui_MainWindow()
         self.CellUI.setupUi(self)
-        self.setWindowIcon( QIcon('logo.png'))
-        self.imgtest = 1
-        self.imggray = 1
-        self.weightpath = 1
-        self.filedirpath = 1
-        self.filedirpath2 = 1
+        self.setWindowIcon(QIcon('logo.png'))
+        self.imgtest = None
+        self.imggray = None
+        self.weightpath = None
+        self.filedirpath = None
+        self.filedirpath2 = None
         self.savepath = 'output/'
         self.Trainpath = 'data/'
         self.modelsavepath = 'output/'
         self.DLsavepath = 'output/'
 
-
-        # self.filedirpath = 'D:/out_new/reference'
-        # self.weightpath = 'weight/anatomyunet.pdparams'
-
-
         self.CellUI.pushButton_52.clicked.connect(self.open_weight)
         self.CellUI.pushButton_51.clicked.connect(self.deeplearning_seg)
-        # self.CellUI.pushButton_55.clicked.connect(self.Traits_cul)
-        self.CellUI.pushButton_24.clicked.connect(self.choose_filedir)
-        self.CellUI.pushButton_54.clicked.connect(self.choose_filedir2)
-        self.CellUI.pushButton_55.clicked.connect(self.choose_filedir3)
+        self.CellUI.pushButton_24.clicked.connect(
+            lambda: self._choose_directory('filedirpath', 'The filedir path is '))
+        self.CellUI.pushButton_54.clicked.connect(
+            lambda: self._choose_directory('filedirpath2', 'The segmented image filedir path is '))
+        self.CellUI.pushButton_55.clicked.connect(
+            lambda: self._choose_directory('savepath', 'The save path is '))
         self.CellUI.pushButton_57.clicked.connect(self.get_result)
-        self.CellUI.pushButton_26.clicked.connect(self.choose_filedir4)
-        self.CellUI.pushButton_27.clicked.connect(self.choose_filedir5)
-        self.CellUI.pushButton_25.clicked.connect(self.choose_filedir6)
+        self.CellUI.pushButton_26.clicked.connect(
+            lambda: self._choose_directory('Trainpath', 'The data path is '))
+        self.CellUI.pushButton_27.clicked.connect(
+            lambda: self._choose_directory('modelsavepath', 'The model save path is '))
+        self.CellUI.pushButton_25.clicked.connect(self._choose_dl_save_path)
         self.CellUI.pushButton_28.clicked.connect(self.train)
 
         sys.stdout = EmittingStr(textWritten=self.outputWritten)
@@ -252,8 +235,6 @@ class UIMain(QMainWindow):
         self.CellUI.lineEdit_4.setText('100')
         self.CellUI.lineEdit_5.setText('10')
         self.CellUI.lineEdit_6.setText('3')
-        # self.CellUI.lineEdit_7.setText('20')
-        # self.CellUI.lineEdit_8.setText('8')
 
     def outputWritten(self, text):
         cursor = self.CellUI.textBrowser.textCursor()
@@ -262,15 +243,13 @@ class UIMain(QMainWindow):
         self.CellUI.textBrowser.setTextCursor(cursor)
         self.CellUI.textBrowser.ensureCursorVisible()
 
-
-    def process_bar1(self,pv):
+    def process_bar1(self, pv):
         self.CellUI.progressBar.setMinimum(0)
         self.CellUI.progressBar.setMaximum(100)
         self.CellUI.progressBar.setValue(pv)
 
-
-    def show_img(self,image):
-
+    def _numpy_to_pixmap(self, image):
+        """Convert a numpy array to a QPixmap, normalizing the color format first."""
         if len(image.shape) == 2:
             image = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
         elif image.shape[2] == 4:
@@ -280,164 +259,114 @@ class UIMain(QMainWindow):
         else:
             image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
-        graph_scene = QGraphicsScene()
-        self.CellUI.graphicsView_2.setScene(graph_scene)
+        if len(image.shape) == 3 and image.shape[2] == 3:
+            return QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888))
+        else:
+            return QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Grayscale8))
 
-        if isinstance(image, str):
-            image = QPixmap(image)
+    def _show_image_on_view(self, image, graphics_view):
+        """Display a numpy image on the given QGraphicsView widget."""
+        if isinstance(image, np.ndarray):
+            pixmap = self._numpy_to_pixmap(image)
+        elif isinstance(image, str):
+            pixmap = QPixmap(image)
         elif isinstance(image, QPixmap):
-            pass
-        elif isinstance(image, np.ndarray):
-            if len(image.shape) == 3:
-                if image.shape[2] == 3:
-                    image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888))
-            else:
-                image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Grayscale8))
-        elif len(image.shape) == 2:
-            image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Grayscale8))
+            pixmap = image
         else:
-            raise TypeError('image type not supported')
-        image = image.scaled(self.CellUI.graphicsView_2.width() - 3, self.CellUI.graphicsView_2.height() - 3,
-                             QtCore.Qt.KeepAspectRatio)
-        graph_scene.addPixmap(image)
-        graph_scene.update()
+            raise TypeError(f'Unsupported image type: {type(image)}')
 
-    def show_img2(self,image):
-
-        # 将任意格式的图片转成RGB三通道
-        if len(image.shape) == 2:
-            image = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
-        elif image.shape[2] == 4:
-            image = cv.cvtColor(image, cv.COLOR_BGRA2RGB)
-        elif image.shape[2] == 1:
-            image = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
-        else:
-            image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-
+        pixmap = pixmap.scaled(graphics_view.width() - 3, graphics_view.height() - 3,
+                               Qt.KeepAspectRatio)
         graph_scene = QGraphicsScene()
-        self.CellUI.graphicsView.setScene(graph_scene)
-
-        if isinstance(image, str):
-            image = QPixmap(image)
-        elif isinstance(image, QPixmap):
-            pass
-        elif isinstance(image, np.ndarray):
-            if len(image.shape) == 3:
-                if image.shape[2] == 3:
-                    image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888))
-            else:
-                image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Grayscale8))
-        elif len(image.shape) == 2:
-            image = QPixmap(QImage(image.data, image.shape[1], image.shape[0], QImage.Format_Grayscale8))
-        else:
-            raise TypeError('image type not supported')
-        # 图片尺寸自适应
-        image = image.scaled(self.CellUI.graphicsView.width() - 3, self.CellUI.graphicsView.height() - 3,
-                             QtCore.Qt.KeepAspectRatio)
-
-
-        graph_scene.addPixmap(image)
+        graph_scene.addPixmap(pixmap)
         graph_scene.update()
+        graphics_view.setScene(graph_scene)
+
+    def show_img(self, image):
+        self._show_image_on_view(image, self.CellUI.graphicsView_2)
+
+    def show_img2(self, image):
+        self._show_image_on_view(image, self.CellUI.graphicsView)
 
     def warning(self):
-        title = 'warning'
-        info = "Please select image file"
-        message1 = QMessageBox.warning(self, title, info, QMessageBox.Yes |QMessageBox.Cancel)
+        title = 'Warning'
+        info = 'Please select a valid file'
+        message1 = QMessageBox.warning(self, title, info, QMessageBox.Yes | QMessageBox.Cancel)
         return message1
 
     def open_img(self):
-        m = QFileDialog.getOpenFileName(None, "选取文件夹", ".")
+        m = QFileDialog.getOpenFileName(None, 'Select Image File', '.')
         filepath = m[0]
-        while (filepath.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', '.pbm', '.pgm', '.ppm', '.tif', '.tiff')) == False):
+        while not filepath.lower().endswith(self.VALID_IMAGE_EXTENSIONS):
             message1 = self.warning()
-            print(message1)
             if message1 == 4194304:
-                break
-            m = QFileDialog.getOpenFileName(None, "choose_file", ".")
+                return
+            m = QFileDialog.getOpenFileName(None, 'Select Image File', '.')
             filepath = m[0]
-            continue
-        print('The image filepath is ' + filepath)
+        print(f'The image filepath is {filepath}')
         self.imgtest = cv.imread(filepath)
         self.show_img(self.imgtest)
 
-
     def open_weight(self):
-        m = QFileDialog.getOpenFileName(None, "choose_weight", ".")
+        m = QFileDialog.getOpenFileName(None, 'Select Weight File', '.')
         filepath = m[0]
-        while (filepath.lower().endswith(('.pdparams')) == False):
+        while not filepath.lower().endswith('.pdparams'):
             message1 = self.warning()
-            print(message1)
             if message1 == 4194304:
-                break
-            m = QFileDialog.getOpenFileName(None, "choose_file", ".")
+                return
+            m = QFileDialog.getOpenFileName(None, 'Select Weight File', '.')
             filepath = m[0]
-            continue
         self.weightpath = filepath
-        print('The weight path is ' + filepath)
+        print(f'The weight path is {filepath}')
+
+    def _choose_directory(self, attr_name, log_prefix):
+        """Generic directory chooser that sets a named attribute and logs the selection."""
+        path = QFileDialog.getExistingDirectory(None, 'Select Folder', '.')
+        if path:
+            setattr(self, attr_name, path)
+            print(f'{log_prefix}{path}')
+
+    def _choose_dl_save_path(self):
+        path = QFileDialog.getExistingDirectory(None, 'Select Folder', '.')
+        if path:
+            self.DLsavepath = os.path.join(path, 'output')
+            print(f'The predicted image save path is {path}')
 
     def deeplearning_seg(self):
         print('Begin to seg')
-        self.thread = SegThread(self.filedirpath,self.weightpath, self.DLsavepath)
+        self.thread = SegThread(self.filedirpath, self.weightpath, self.DLsavepath)
         self.thread.signal_img1_set.connect(self.show_img2)
         self.thread.signal_img2_set.connect(self.show_img)
         self.thread.signal_process_set.connect(self.process_bar1)
         self.thread.start()
 
-
-    def choose_filedir(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.filedirpath = path
-        print('The filedir path is ' + path)
-
-    def choose_filedir2(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.filedirpath2 = path
-        print('The segmented image filedir path is ' + path)
-
-    def choose_filedir3(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.savepath = path
-        print('The save path is ' + path)
-
-    def choose_filedir4(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.Trainpath = path
-        print('The data path is ' + path)
-
-    def choose_filedir5(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.modelsavepath = path
-        print('The model save path is ' + path)
-
-    def choose_filedir6(self):
-        path = QFileDialog.getExistingDirectory(None, "请选择文件夹路径", ".")
-        self.DLsavepath = os.path.join(path, 'output')
-        print('The predicted image save path is ' + path)
-
     def get_result(self):
-        print('Begin to caculate traits')
-        DS_pericycle = float(self.CellUI.lineEdit_8.text())
-        DS2_pericycle = float(self.CellUI.lineEdit_9.text())
-        Area_pericycle = float(self.CellUI.lineEdit_10.text())
-        DS1_endodermis = float(self.CellUI.lineEdit_11.text())
-        DS2_endodermis = float(self.CellUI.lineEdit_12.text())
-        Area_endodermis = float(self.CellUI.lineEdit_13.text())
-        DS1_exodermis = float(self.CellUI.lineEdit_14.text())
-        DS2_exodermis = float(self.CellUI.lineEdit_15.text())
-        Area_exodermis = float(self.CellUI.lineEdit_16.text())
+        print('Begin to calculate traits')
+        try:
+            DS_pericycle = float(self.CellUI.lineEdit_8.text())
+            DS2_pericycle = float(self.CellUI.lineEdit_9.text())
+            Area_pericycle = float(self.CellUI.lineEdit_10.text())
+            DS1_endodermis = float(self.CellUI.lineEdit_11.text())
+            DS2_endodermis = float(self.CellUI.lineEdit_12.text())
+            Area_endodermis = float(self.CellUI.lineEdit_13.text())
+            DS1_exodermis = float(self.CellUI.lineEdit_14.text())
+            DS2_exodermis = float(self.CellUI.lineEdit_15.text())
+            Area_exodermis = float(self.CellUI.lineEdit_16.text())
+        except ValueError:
+            QMessageBox.warning(self, 'Invalid Input',
+                                'Please enter valid numeric values in all trait parameter fields.')
+            return
 
-
-        self.thread = TraitsThread(self.filedirpath2,self.savepath,
+        self.thread = TraitsThread(self.filedirpath2, self.savepath,
                                    DS_pericycle, DS2_pericycle, Area_pericycle, DS1_endodermis,
-                                   DS2_endodermis, Area_endodermis, DS1_exodermis, DS2_exodermis, Area_exodermis)
+                                   DS2_endodermis, Area_endodermis, DS1_exodermis, DS2_exodermis,
+                                   Area_exodermis)
         self.thread.signal_result_set.connect(self.show_img2)
         self.thread.signal_result2_set.connect(self.show_img)
         self.thread.signal_process2_set.connect(self.process_bar1)
         self.thread.start()
 
-
     def train(self):
-
         LR = self.CellUI.lineEdit.text()
         ITERS = self.CellUI.lineEdit_2.text()
         BS = self.CellUI.lineEdit_3.text()
@@ -446,8 +375,9 @@ class UIMain(QMainWindow):
         CLA = self.CellUI.lineEdit_6.text()
 
         print('Begin to train model')
-        self.thread = TrainThread(self.Trainpath, self.modelsavepath, LR,ITERS, BS, SI, LI, CLA)
+        self.thread = TrainThread(self.Trainpath, self.modelsavepath, LR, ITERS, BS, SI, LI, CLA)
         self.thread.start()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
