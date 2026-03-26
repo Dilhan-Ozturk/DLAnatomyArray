@@ -124,6 +124,10 @@ def DLsegBatch(filepath, weightpath, name, savepath):
     """Run DL segmentation on a single image and save the results."""
     img = cv2.imread(filepath)
 
+    if img is None:
+        raise ValueError(f"Could not read image file: {filepath}. "
+                         "The file may be missing, corrupted, or not a supported image format.")
+
     if img.shape[0] > 5000 or img.shape[1] > 5000:
         crop_size = (1024, 512)
         padded_image = np.pad(img, ((0, crop_size[1]), (0, crop_size[0]), (0, 0)), mode='constant')

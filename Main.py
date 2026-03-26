@@ -17,6 +17,7 @@ import json
 from RootTraitCal import RootTraitCal
 from ImageProcess import *
 
+# Modified by Dilhan
 
 class SegThread(QThread):
     signal_img1_set = QtCore.pyqtSignal(np.ndarray)
@@ -32,8 +33,14 @@ class SegThread(QThread):
     def __del__(self):
         self.wait()
 
+    VALID_IMAGE_EXTENSIONS = ('.bmp', '.dib', '.png', '.jpg', '.jpeg',
+                               '.pbm', '.pgm', '.ppm', '.tif', '.tiff')
+
     def run(self):
-        file = os.listdir(self.filedirpath)
+        all_files = os.listdir(self.filedirpath)
+        file = [f for f in all_files
+                if os.path.isfile(os.path.join(self.filedirpath, f))
+                and f.lower().endswith(self.VALID_IMAGE_EXTENSIONS)]
         for i, name in enumerate(file, start=1):
             filepath = os.path.join(self.filedirpath, name)
             img = DLsegBatch(filepath, self.weightpath, name, self.savepath)
