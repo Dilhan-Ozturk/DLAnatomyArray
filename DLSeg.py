@@ -120,13 +120,37 @@ def predict_img(image, weightpath):
     return img1, img2
 
 
-def DLsegBatch(filepath, weightpath, name, savepath):
-    """Run DL segmentation on a single image and save the results."""
-    img = cv2.imread(filepath)
+def DLsegBatch(filepath, weightpath, name, savepath, crop_top=30, crop_bottom=80):
+    """Run DL segmentation on a single image and save the results.
 
-    if img is None:
-        raise ValueError(f"Could not read image file: {filepath}. "
-                         "The file may be missing, corrupted, or not a supported image format.")
+    Args:
+        filepath:    Full path to the input image.
+        weightpath:  Path to the model weight file (.pdparams).
+        name:        Filename used when writing outputs.
+        savepath:    Root directory where 'in/' and 'out/' folders are created.
+        crop_top:    Number of pixels to remove from the top of the image
+                     before inference (removes title / text overlays).
+                     Set to 0 to disable. Default: 30.
+        crop_bottom: Number of pixels to remove from the bottom of the image
+                     before inference (removes scale bars / metadata overlays).
+                     Set to 0 to disable. Default: 80.
+    """
+    # Use PIL for robust .tif loading (preserves bit-depth, ignores metadata)
+    try:
+        pil_img = Image.open(filepath)
+        img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    except Exception as e:
+        raise ValueError(f"Could not read image file: {filepath}. Reason: {e}")
+
+    if img is None or img.size == 0:
+        raise ValueError(f"Image loaded but is empty: {filepath}")
+
+    original_h = img.shape[0]
+
+    # Crop title at top and scale bar at bottom before inference
+    top = crop_top if crop_top > 0 else 0
+    bottom = (original_h - crop_bottom) if crop_bottom > 0 and original_h > crop_bottom else original_h
+    img = img[top:bottom, :]
 
     if img.shape[0] > 5000 or img.shape[1] > 5000:
         crop_size = (1024, 512)
@@ -188,11 +212,26 @@ def concatenate_images(cropped_images, original_size, crop_size):
     return result_image
 
 
-def seg_img(filepath, weightpath, savepath):
+def seg_img(filepath, weightpath, savepath, crop_top=30, crop_bottom=80):
     """Run DL segmentation on all images in a directory."""
     filename = os.listdir(filepath)
     for name in filename:
-        img = cv2.imread(os.path.join(filepath, name))
+        try:
+            pil_img = Image.open(os.path.join(filepath, name))
+            img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        except Exception as e:
+            print(f'{name} could not be loaded: {e}')
+            continue
+
+        if img is None or img.size == 0:
+            print(f'{name} is empty, skipping.')
+            continue
+
+        original_h = img.shape[0]
+        if crop_top > 0 or crop_bottom > 0:
+            top = crop_top if crop_top > 0 else 0
+            bottom = (original_h - crop_bottom) if crop_bottom > 0 and original_h > crop_bottom else original_h
+            img = img[top:bottom, :]
 
         if img.shape[0] > 10000 or img.shape[1] > 10000:
             crop_size = (1024, 512)
